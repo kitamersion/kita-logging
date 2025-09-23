@@ -10,7 +10,7 @@ const initDB = (): Promise<IDBDatabase> => {
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains(STORE_CONFIG)) {
         db.createObjectStore(STORE_CONFIG, { keyPath: 'key' });
@@ -38,7 +38,7 @@ export const saveLog = async (logEntry: Omit<LogEntry, 'id' | 'timestamp'>): Pro
   const store = transaction.objectStore(STORE_NAME);
   const entry: LogEntry = {
     ...logEntry,
-    id: Date.now(),
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     timestamp: new Date()
   };
   const request = store.add(entry);
