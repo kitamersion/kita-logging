@@ -1,4 +1,4 @@
-import { getLogPrefix } from './config';
+import { getLogPrefix, getLogRetentionDays } from './config';
 import { saveLog, purgeOldLogs } from './history';
 
 const logger = {
@@ -6,25 +6,29 @@ const logger = {
     const prefix = await getLogPrefix();
     console.log(`${prefix} ${message}`);
     await saveLog({ message, level: 'info' });
-    await purgeOldLogs();
+    const retention = await getLogRetentionDays();
+    await purgeOldLogs(retention);
   },
   debug: async (message: string) => {
     const prefix = await getLogPrefix();
     console.info(`${prefix} ${message}`);
     await saveLog({ message, level: 'debug' });
-    await purgeOldLogs();
+    const retention = await getLogRetentionDays();
+    await purgeOldLogs(retention);
   },
   warn: async (message: string) => {
     const prefix = await getLogPrefix();
     console.warn(`${prefix} ${message}`);
     await saveLog({ message, level: 'warn' });
-    await purgeOldLogs();
+    const retention = await getLogRetentionDays();
+    await purgeOldLogs(retention);
   },
   error: async (message: string) => {
     const prefix = await getLogPrefix();
     console.error(`${prefix} ${message}`);
     await saveLog({ message, level: 'error' });
-    await purgeOldLogs();
+    const retention = await getLogRetentionDays();
+    await purgeOldLogs(retention);
   },
 };
 

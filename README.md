@@ -94,8 +94,10 @@ import { logger, config, history } from "kita-logging";
 await config.setLogPrefix("[MY_APP]");
 await config.setLogRetentionDays(14); // keep logs for 14 days
 
-// Log messages
+// Add a log
 await logger.info("App started");
+
+// Log more messages
 await logger.warn("Something might be wrong");
 await logger.error("Something went wrong");
 
