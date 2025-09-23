@@ -1,11 +1,16 @@
 {
   "name": "kita-logging",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lightweight IndexDB logging library for web applications.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --outDir lib",
     "test": "vitest run"
   },
   "keywords": [

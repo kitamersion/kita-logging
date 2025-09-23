@@ -1,3 +1,5 @@
+# Node/TS build output
+lib/
 # backend
 venv
 temp/

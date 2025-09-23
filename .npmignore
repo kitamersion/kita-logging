@@ -1,0 +1,17 @@
+# Exclude test, config, and build artifacts, but NOT lib
+src/
+test/
+node_modules/
+.git/
+.gitignore
+.vscode/
+.DS_Store
+*.tgz
+*.tsbuildinfo
+*.env*
+*.log
+coverage/
+
+# Do NOT exclude lib (the build output)
+!.npmignore
+!lib/
