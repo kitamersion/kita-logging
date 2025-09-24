@@ -80,7 +80,7 @@ Lightweight IndexDB logging library for web applications.
 ## Installation
 
 ```
-npm install kita-logging
+npm install @kitamersion/kita-logging
 ```
 
 ## Usage
@@ -88,7 +88,7 @@ npm install kita-logging
 You can also expose log history or config options in your UI by calling the respective APIs from event handlers or effects.
 
 ```typescript
-import { logger, config, history } from "kita-logging";
+import { logger, config, history } from "@kitamersion/kita-logging";
 
 // Configure logging (optional)
 await config.setLogPrefix("[MY_APP]");

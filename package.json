@@ -1,6 +1,6 @@
 {
-  "name": "kita-logging",
-  "version": "1.0.2",
+  "name": "@kitamersion/kita-logging",
+  "version": "1.0.0",
   "description": "Lightweight IndexDB logging library for web applications.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -24,6 +24,9 @@
   "license": "MIT",
   "author": {
     "name": "kitamersion"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@vitest/ui": "^3.2.4",
