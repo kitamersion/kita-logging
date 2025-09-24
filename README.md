@@ -1,71 +1,3 @@
-## React Example: Context/Provider Pattern
-
-For a more React-idiomatic approach, you can wrap your app in a LoggerProvider and use a custom hook to access and update logging config anywhere in your component tree.
-
-```tsx
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { logger, config } from "kita-logging";
-
-// Logger context and provider
-const LoggerConfigContext = createContext(null);
-
-export function LoggerProvider({ children }) {
-  const [logPrefix, setLogPrefixState] = useState("");
-  const [logRetentionDays, setLogRetentionDaysState] = useState(7);
-
-  useEffect(() => {
-    config.viewCurrentConfigurations().then((cfg) => {
-      setLogPrefixState(cfg.logPrefix);
-      setLogRetentionDaysState(cfg.logRetentionDays);
-    });
-  }, []);
-
-  const setLogPrefix = async (prefix) => {
-    await config.setLogPrefix(prefix);
-    setLogPrefixState(prefix);
-  };
-  const setLogRetentionDays = async (days) => {
-    await config.setLogRetentionDays(days);
-    setLogRetentionDaysState(days);
-  };
-
-  return (
-    <LoggerConfigContext.Provider
-      value={{ logPrefix, logRetentionDays, setLogPrefix, setLogRetentionDays }}
-    >
-      {children}
-    </LoggerConfigContext.Provider>
-  );
-}
-
-export function useLoggerConfig() {
-  return useContext(LoggerConfigContext);
-}
-
-// Usage in your app
-function App() {
-  const { logPrefix, setLogPrefix } = useLoggerConfig();
-
-  useEffect(() => {
-    logger.info("App started with prefix: " + logPrefix);
-  }, [logPrefix]);
-
-  return (
-    <div>
-      <h1>Logger Prefix: {logPrefix}</h1>
-      <button onClick={() => setLogPrefix("[NEW_PREFIX]")}>
-        Change Prefix
-      </button>
-    </div>
-  );
-}
-
-// In your main entry point:
-// <LoggerProvider><App /></LoggerProvider>
-```
-
-This pattern lets you manage and update logging config anywhere in your React app, and is ideal for settings pages or browser extension UIs.
-
 # kita-logging
 
 Lightweight IndexDB logging library for web applications.
@@ -108,6 +40,81 @@ console.log(logs);
 // View current config
 const currentConfig = await config.viewCurrentConfigurations();
 console.log(currentConfig);
+```
+
+## React Example: Context/Provider Pattern
+
+For a more React-idiomatic approach, you can wrap your app in a LoggerProvider and use a custom hook to access and update logging config anywhere in your component tree.
+
+```tsx
+import { config } from "@kitamersion/kita-logging";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useMemo,
+  PropsWithChildren,
+} from "react";
+
+type LoggerConfigContextType = {
+  logPrefix: string;
+  logRetentionDays: number;
+  setLogPrefix: (prefix: string) => Promise<void>;
+  setLogRetentionDays: (days: number) => Promise<void>;
+};
+
+const LoggerConfigContext = createContext<LoggerConfigContextType | undefined>(
+  undefined
+);
+
+export const useLoggerConfig = () => {
+  const context = useContext(LoggerConfigContext);
+  if (!context) {
+    throw new Error("useLoggerConfig must be used within a LoggerProvider");
+  }
+  return context;
+};
+
+export const LoggerProvider = ({ children }: PropsWithChildren<object>) => {
+  const [logPrefix, setLogPrefixState] = useState("");
+  const [logRetentionDays, setLogRetentionDaysState] = useState(7);
+
+  // Load config on mount
+  useEffect(() => {
+    // Fetch current configurations
+    config.viewCurrentConfigurations().then((cfg) => {
+      setLogPrefixState(cfg.logPrefix);
+      setLogRetentionDaysState(1);
+    });
+
+    // OR...
+
+    // Set you configurations
+    config.setLogPrefix("[YOUR_APP_PREFIX]"); // Set your desired prefix here
+    config.setLogRetentionDays(1);
+  }, []);
+
+  const setLogPrefix = async (prefix: string) => {
+    await config.setLogPrefix(prefix);
+    setLogPrefixState(prefix);
+  };
+  const setLogRetentionDays = async (days: number) => {
+    await config.setLogRetentionDays(days);
+    setLogRetentionDaysState(days);
+  };
+
+  const contextValue = useMemo(
+    () => ({ logPrefix, logRetentionDays, setLogPrefix, setLogRetentionDays }),
+    [logPrefix, logRetentionDays]
+  );
+
+  return (
+    <LoggerConfigContext.Provider value={contextValue}>
+      {children}
+    </LoggerConfigContext.Provider>
+  );
+};
 ```
 
 ## API
