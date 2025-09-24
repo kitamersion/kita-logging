@@ -19,10 +19,12 @@ describe('Logger Package', () => {
   });
 
   it('logs info, debug, warn, and error', async () => {
-    await logger.info('info test');
-    await logger.debug('debug test');
-    await logger.warn('warn test');
-    await logger.error('error test');
+    // buffered logger is fire-and-forget; log and then flush to persist
+    logger.info('info test');
+    logger.debug('debug test');
+    logger.warn('warn test');
+    logger.error('error test');
+    await logger.flush();
     const logs = await history.getLogs();
     expect(logs.length).toBe(4);
     expect(logs.map(l => l.level)).toContain('info');
@@ -48,7 +50,8 @@ describe('Logger Package', () => {
   });
 
   it('purges logs older than retention', async () => {
-    await logger.info('keep');
+    logger.info('keep');
+    await logger.flush();
     // Simulate an old log
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const req = indexedDB.open('logHistoryDB', 1);
@@ -70,8 +73,9 @@ describe('Logger Package', () => {
   });
 
   it('deleteAllLogs removes all logs', async () => {
-    await logger.info('one');
-    await logger.info('two');
+    logger.info('one');
+    logger.info('two');
+    await logger.flush();
     let logs = await history.getLogs();
     expect(logs.length).toBeGreaterThanOrEqual(2);
     await history.deleteAllLogs();

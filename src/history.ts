@@ -54,6 +54,31 @@ export const saveLog = async (logEntry: Omit<LogEntry, 'id' | 'timestamp'>): Pro
   });
 };
 
+export const saveLogs = async (logEntries: Array<Omit<LogEntry, 'id' | 'timestamp'>>): Promise<void> => {
+  const db = await getDB();
+  const transaction = db.transaction([STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(STORE_NAME);
+
+  // Add each entry to the store within the same transaction.
+  for (let i = 0; i < logEntries.length; i++) {
+    const le = logEntries[i];
+    const entry: LogEntry = {
+      ...le,
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + String(i),
+      timestamp: Date.now(),
+      timestampISO: new Date().toISOString(),
+  prefix: le.prefix ?? undefined,
+    };
+    store.add(entry);
+  }
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+};
+
 export const getLogs = async (): Promise<LogEntry[]> => {
   const db = await getDB();
   const transaction = db.transaction([STORE_NAME], 'readonly');
