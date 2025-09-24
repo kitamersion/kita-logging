@@ -29,6 +29,8 @@ describe('Logger Package', () => {
     expect(logs.map(l => l.level)).toContain('debug');
     expect(logs.map(l => l.level)).toContain('warn');
     expect(logs.map(l => l.level)).toContain('error');
+  // ensure prefix was stored with each log
+  expect(logs.every(l => typeof l.prefix === 'string')).toBe(true);
   });
 
   it('respects log prefix from config', async () => {
@@ -56,13 +58,24 @@ describe('Logger Package', () => {
     const tx = db.transaction(['logs'], 'readwrite');
     const store = tx.objectStore('logs');
     await new Promise<void>((resolve, reject) => {
-      const addReq = store.add({ id: Date.now() - 1000 * 60 * 60 * 24 * 10, message: 'old', level: 'info', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10) });
+      const ts = Date.now() - 1000 * 60 * 60 * 24 * 10;
+      const addReq = store.add({ id: ts, message: 'old', level: 'info', timestamp: ts, prefix: '[KITA_LOGGING]' });
       addReq.onsuccess = () => resolve();
       addReq.onerror = () => reject(addReq.error);
     });
-    await history.purgeOldLogs(7);
+    await history.deleteExpiredLogs(7);
     const logs = await history.getLogs();
     expect(logs.some(l => l.message === 'old')).toBe(false);
     expect(logs.some(l => l.message === 'keep')).toBe(true);
+  });
+
+  it('deleteAllLogs removes all logs', async () => {
+    await logger.info('one');
+    await logger.info('two');
+    let logs = await history.getLogs();
+    expect(logs.length).toBeGreaterThanOrEqual(2);
+    await history.deleteAllLogs();
+    logs = await history.getLogs();
+    expect(logs.length).toBe(0);
   });
 });

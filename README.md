@@ -34,6 +34,7 @@ await logger.warn("Something might be wrong");
 await logger.error("Something went wrong");
 
 // Read log history
+// Read logs (each entry includes `timestamp` (ms) and `timestampISO` for display)
 const logs = await history.getLogs();
 console.log(logs);
 
@@ -136,7 +137,8 @@ export const LoggerProvider = ({ children }: PropsWithChildren<object>) => {
 
 ### history
 
-- `getLogs()` — Get all logs from IndexedDB
-- `purgeOldLogs()` — Remove logs older than the retention period
+- `getLogs()` — Get all logs from IndexedDB (newest first)
+- `deleteExpiredLogs()` — Remove logs older than the retention period
+- `deleteAllLogs()` — Remove all logs from storage (manual cleanup)
 
 ---

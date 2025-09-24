@@ -1,8 +1,10 @@
 export interface LogEntry {
   id: string;
-  timestamp: Date;
+  timestamp: number;
+  timestampISO?: string;
   level: 'info' | 'debug' | 'warn' | 'error';
   message: string;
+  prefix?: string;
 }
 
 export interface ConfigOptions {
