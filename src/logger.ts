@@ -1,14 +1,13 @@
 import { getLogPrefix, getBufferedOptions, onBufferedOptionsChange } from "./config";
 import { saveLogs } from "./history";
-import type { BufferedOptions } from "./types";
+import type { BufferedOptions, LogEntry } from "./types";
+import { DEFAULT_BUFFERED_OPTIONS } from "./defaults";
 
 // Buffered, fire-and-forget logger implementation.
 
+// use shared defaults from `defaults.ts`
 const DEFAULT_BUFFERED: Required<BufferedOptions> = {
-  flushIntervalMs: 2000,
-  batchSize: 50,
-  maxBufferSize: 5000,
-  persistToLocalStorage: true,
+  ...(DEFAULT_BUFFERED_OPTIONS as Required<BufferedOptions>),
 };
 
 const LS_KEY = "kita_logging_buffer_snapshot_v1";
@@ -25,8 +24,12 @@ let _cachedPrefix: string | null = null;
 
 export const createLogger = (opts?: BufferedOptions) => {
   const cfg = { ...DEFAULT_BUFFERED, ...(opts || {}) };
-  let buffer: Array<Omit<any, "id" | "timestamp">> = [];
-  let timer: any = null;
+  type LogPayload = Omit<LogEntry, "id" | "timestamp">;
+  type Deferred = { res: () => void; rej: (err?: unknown) => void };
+  type BufferItem = LogPayload & { __deferred?: Deferred };
+
+  let buffer: BufferItem[] = [];
+  let timer: number | null = null;
   let stopped = false;
 
   const loadSnapshot = () => {
@@ -49,10 +52,11 @@ export const createLogger = (opts?: BufferedOptions) => {
     if (!cfg.persistToLocalStorage) return;
     try {
       // only persist serializable fields (avoid functions/promises)
-      const serializable = buffer.map((it: any) => ({
+      const serializable = buffer.map((it) => ({
         message: it.message,
         level: it.level,
         prefix: it.prefix,
+        stack: it.stack,
       }));
       localStorage.setItem(LS_KEY, JSON.stringify(serializable));
     } catch (e) {
@@ -81,17 +85,18 @@ export const createLogger = (opts?: BufferedOptions) => {
 
   const flush = async () => {
     if (buffer.length === 0) return;
-    const toSend = buffer.splice(0, cfg.batchSize);
+  const toSend = buffer.splice(0, cfg.batchSize);
     // strip out internal deferreds for persistence
-    const serializable = toSend.map((it: any) => ({
+    const serializable = toSend.map((it) => ({
       message: it.message,
       level: it.level,
       prefix: it.prefix,
+      stack: it.stack,
     }));
     try {
-      await saveLogs(serializable as any);
+      await saveLogs(serializable);
       // resolve deferred promises for each item
-      toSend.forEach((it: any) => {
+      toSend.forEach((it) => {
         try {
           if (it.__deferred && typeof it.__deferred.res === "function")
             it.__deferred.res();
@@ -104,7 +109,7 @@ export const createLogger = (opts?: BufferedOptions) => {
       buffer = toSend.concat(buffer);
       saveSnapshot();
       // reject deferred promises
-      toSend.forEach((it: any) => {
+      toSend.forEach((it) => {
         try {
           if (it.__deferred && typeof it.__deferred.rej === "function")
             it.__deferred.rej(e);
@@ -121,19 +126,19 @@ export const createLogger = (opts?: BufferedOptions) => {
   schedule();
 
   // push returns a promise that resolves when the entry has been persisted
-  const push = (entry: Omit<any, "id" | "timestamp">): Promise<void> => {
+  const push = (entry: LogPayload): Promise<void> => {
     if (buffer.length >= cfg.maxBufferSize) {
       // drop oldest to make room
       buffer.shift();
     }
     // deferred promise for this entry
     let res: () => void = () => {};
-    let rej: (err?: any) => void = () => {};
+    let rej: (err?: unknown) => void = () => {};
     const p = new Promise<void>((resolve, reject) => {
       res = resolve;
       rej = reject;
     });
-    const wrapped: any = { ...entry, __deferred: { res, rej } };
+    const wrapped: BufferItem = { ...entry, __deferred: { res, rej } };
     buffer.push(wrapped);
     // trigger immediate flush request (fire-and-forget)
     flush().catch(() => {});
@@ -141,14 +146,33 @@ export const createLogger = (opts?: BufferedOptions) => {
   };
 
   const makeLogger =
-    (level: "info" | "debug" | "warn" | "error") => (message: string) => {
+    (level: "info" | "debug" | "warn" | "error") => (message: string, maybeErr?: Error | string) => {
       const prefix = _cachedPrefix ?? "[KITA_LOGGING]";
-      // console output immediately
+      // compute stack only for error level or when provided
+      let stack: string | undefined = undefined;
+      if (maybeErr) {
+        stack = typeof maybeErr === "string" ? maybeErr : (maybeErr as Error).stack;
+      } else if (level === "error" && cfg.captureStack) {
+        // synthesize a stack trace at the callsite
+        try {
+          const e = new Error();
+          stack = e.stack;
+        } catch (e) {
+          stack = undefined;
+        }
+      }
+      // truncate if necessary
+      const maxChars = cfg.maxStackChars ?? 2000;
+      if (stack && stack.length > maxChars) {
+        stack = stack.slice(0, maxChars);
+      }
+
+      // console output immediately (include stack for error)
       if (level === "info") console.log(`${prefix} ${message}`);
       if (level === "debug") console.info(`${prefix} ${message}`);
       if (level === "warn") console.warn(`${prefix} ${message}`);
-      if (level === "error") console.error(`${prefix} ${message}`);
-      return push({ message, level, prefix });
+      if (level === "error") console.error(`${prefix} ${message}` + (stack ? `\n${stack}` : ""));
+  return push({ message, level, prefix, stack });
     };
 
   return {

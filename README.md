@@ -41,6 +41,14 @@ await config.setLogRetentionDays(14);
 await config.setBufferedOptions({ flushIntervalMs: 1000, batchSize: 25 });
 const current = await config.getBufferedOptions();
 console.log(current);
+
+// capture an Error inside a try/catch — the stack will be persisted on the log entry
+try {
+  throw new Error("example");
+} catch (err) {
+  // logger.error accepts an optional Error (or string) as a second argument
+  await logger.error("caught failure", err);
+}
 ```
 
 ## React: Provider + hook example
@@ -121,6 +129,7 @@ logger (default export)
 - `logger.debug(message: string): void` — push a debug-level log
 - `logger.warn(message: string): void` — push a warn-level log
 - `logger.error(message: string): void` — push an error-level log
+- `logger.error(message: string, err?: Error | string): Promise<void>` — push an error-level log; if an `Error` or stack string is provided it will be saved on the log entry as `stack`
 - `logger.flush(): Promise<void>` — force flush buffered entries to IndexedDB
 - `logger.start(): void` — start periodic flush (enabled by default)
 - `logger.stop(): Promise<void>` — stop periodic flush and flush remaining entries
@@ -134,13 +143,17 @@ config (named export)
 - `config.setLogRetentionDays(days: number): Promise<void>`
 - `config.getLogRetentionDays(): Promise<number>`
 - `config.viewCurrentConfigurations(): Promise<{ logPrefix: string, logRetentionDays: number }>`
-- `config.setBufferedOptions(opts: BufferedOptions): Promise<void>` — persist buffered logger options (flushIntervalMs, batchSize, maxBufferSize, persistToLocalStorage)
+- `config.setBufferedOptions(opts: BufferedOptions): Promise<void>` — persist buffered logger options (flushIntervalMs, batchSize, maxBufferSize, persistToLocalStorage, captureStack, maxStackChars)
 - `config.getBufferedOptions(): Promise<BufferedOptions>` — read persisted buffered options (or defaults)
 - `config.onBufferedOptionsChange(fn: (opts: BufferedOptions) => void): () => void` — subscribe to changes to buffered options; returns an unsubscribe function
+- `config.setCaptureStack(capture: boolean): Promise<void>` — toggle capturing of stacks for error logs (persists to config)
+- `config.getCaptureStack(): Promise<boolean>` — read persisted captureStack setting
+- `config.setMaxStackChars(chars: number): Promise<void>` — set maximum characters to store for stack traces (persists to config)
+- `config.getMaxStackChars(): Promise<number>` — read persisted maximum stack chars
 
 history (named export)
 
-- `history.getLogs(): Promise<LogEntry[]>` — returns newest-first; `LogEntry` includes: `id`, `timestamp` (ms), `timestampISO`, `level`, `message`, `prefix`
+- `history.getLogs(): Promise<LogEntry[]>` — returns newest-first; `LogEntry` includes: `id`, `timestamp` (ms), `timestampISO`, `level`, `message`, `prefix`, and `stack` (when available)
 - `history.deleteExpiredLogs(retentionDays?: number): Promise<void>`
 - `history.deleteAllLogs(): Promise<void>`
 
@@ -157,6 +170,12 @@ When creating a custom buffered logger via `createLogger(opts)` or when persisti
 - `batchSize` (number) — entries per flush (default: `50`)
 - `maxBufferSize` (number) — max entries in memory (default: `5000`)
 - `persistToLocalStorage` (boolean) — snapshot buffer to `localStorage` on failures (default: `true`)
+
+- `captureStack` (boolean) — capture and persist stack traces for error logs (default: `true`)
+
+- `maxStackChars` (number) — maximum characters stored for stack traces (default: `2000`)
+
+Note: stacks are truncated to a reasonable default length (2000 characters) to avoid very large DB entries; this limit is configurable via `config.setMaxStackChars` and the default is defined in `src/defaults.ts`.
 
 ## Tests & development
 

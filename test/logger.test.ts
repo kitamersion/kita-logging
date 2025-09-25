@@ -88,4 +88,15 @@ describe("Logger Package", () => {
     logs = await history.getLogs();
     expect(logs.length).toBe(0);
   });
+
+  it("stores stack when logging an Error", async () => {
+    const err = new Error("boom-test");
+    logger.error("caught error", err);
+    await logger.flush();
+    const logs = await history.getLogs();
+  const e = logs.find((l) => l.level === "error" && l.message === "caught error");
+  expect(e).toBeTruthy();
+  expect(typeof e!.stack).toBe("string");
+  expect(e!.stack).toContain("boom-test");
+  });
 });

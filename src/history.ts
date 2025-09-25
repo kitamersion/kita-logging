@@ -101,11 +101,9 @@ export const getLogs = async (): Promise<LogEntry[]> => {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
       try {
-        const result = request.result || [];
-        // Ensure newest logs first (timestamp stored as epoch ms)
-        result.sort(
-          (a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0),
-        );
+  const result: LogEntry[] = request.result || [];
+  // Ensure newest logs first (timestamp stored as epoch ms)
+  result.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         resolve(result);
       } catch (err) {
         reject(err);
@@ -145,9 +143,10 @@ export const deleteAllLogs = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
     allReq.onsuccess = async () => {
       try {
-        const items = allReq.result || [];
-        const deletePromises = items.map((item: any) => {
-          const delReq = store.delete(item.id || item.key);
+        const items: Array<Record<string, unknown>> = allReq.result || [];
+        const deletePromises = items.map((item) => {
+          const key = (item as any).id ?? (item as any).key;
+          const delReq = store.delete(key);
           return new Promise<void>((res, rej) => {
             delReq.onsuccess = () => res();
             delReq.onerror = () => rej(delReq.error);

@@ -11,4 +11,6 @@ export const DEFAULT_BUFFERED_OPTIONS = {
 	batchSize: 50,
 	maxBufferSize: 5000,
 	persistToLocalStorage: true,
+	captureStack: true,
+	maxStackChars: 2000,
 };

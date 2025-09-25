@@ -5,6 +5,7 @@ export interface LogEntry {
   level: "info" | "debug" | "warn" | "error";
   message: string;
   prefix?: string;
+  stack?: string;
 }
 
 export type BufferedOptions = {
@@ -12,6 +13,10 @@ export type BufferedOptions = {
   batchSize?: number;
   maxBufferSize?: number;
   persistToLocalStorage?: boolean;
+  // whether to capture/attach stack traces for error logs
+  captureStack?: boolean;
+  // maximum number of characters to store for stack traces
+  maxStackChars?: number;
 };
 
 export interface ConfigOptions {

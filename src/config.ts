@@ -64,6 +64,30 @@ export const getBufferedOptions = async (): Promise<BufferedOptions> => {
   return bufferedOptions || DEFAULT_BUFFERED_OPTIONS;
 };
 
+export const setCaptureStack = async (capture: boolean) => {
+  await loadConfig();
+  bufferedOptions = { ...bufferedOptions, captureStack: capture } as BufferedOptions;
+  await saveConfig({ logPrefix, logRetentionDays, bufferedOptions });
+  bufferedListeners.forEach((fn) => fn(bufferedOptions!));
+};
+
+export const getCaptureStack = async (): Promise<boolean> => {
+  const opts = await getBufferedOptions();
+  return !!opts.captureStack;
+};
+
+export const setMaxStackChars = async (chars: number) => {
+  await loadConfig();
+  bufferedOptions = { ...bufferedOptions, maxStackChars: chars } as BufferedOptions;
+  await saveConfig({ logPrefix, logRetentionDays, bufferedOptions });
+  bufferedListeners.forEach((fn) => fn(bufferedOptions!));
+};
+
+export const getMaxStackChars = async (): Promise<number> => {
+  const opts = await getBufferedOptions();
+  return opts.maxStackChars ?? DEFAULT_BUFFERED_OPTIONS.maxStackChars;
+};
+
 export const getLogRetentionDays = async () => {
   await loadConfig();
   return logRetentionDays;
@@ -74,7 +98,7 @@ export const viewCurrentConfigurations = async () => {
   return {
     logPrefix,
     logRetentionDays,
-  bufferedOptions,
+    bufferedOptions,
   };
 };
 
