@@ -13,14 +13,14 @@ type SimpleLoggerConfig = {
 };
 
 const SimpleLoggerContext = createContext<SimpleLoggerConfig | undefined>(
-  undefined
+  undefined,
 );
 
 export const useSimpleLoggerConfig = () => {
   const ctx = useContext(SimpleLoggerContext);
   if (!ctx)
     throw new Error(
-      "useSimpleLoggerConfig must be used within LoggerProviderSimple"
+      "useSimpleLoggerConfig must be used within LoggerProviderSimple",
     );
   return ctx;
 };

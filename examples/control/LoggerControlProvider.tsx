@@ -7,26 +7,23 @@ import React, {
   useState,
   PropsWithChildren,
 } from "react";
-import {
-  createBufferedLogger,
-  BufferedOptions,
-} from "@kitamersion/kita-logging";
+import { createLogger, BufferedOptions } from "@kitamersion/kita-logging";
 
 type LoggerControl = {
-  logger: ReturnType<typeof createBufferedLogger>;
+  logger: ReturnType<typeof createLogger>;
   bufferOptions: Required<BufferedOptions>;
   setBufferOptions: (opts: Partial<BufferedOptions>) => Promise<void>;
 };
 
 const LoggerControlContext = createContext<LoggerControl | undefined>(
-  undefined
+  undefined,
 );
 
 export const useLoggerControl = () => {
   const ctx = useContext(LoggerControlContext);
   if (!ctx)
     throw new Error(
-      "useLoggerControl must be used within LoggerControlProvider"
+      "useLoggerControl must be used within LoggerControlProvider",
     );
   return ctx;
 };
@@ -43,7 +40,7 @@ export const LoggerControlProvider = ({
 }: PropsWithChildren<object>) => {
   const [bufferOptions, setBufferOptionsState] =
     useState<Required<BufferedOptions>>(DEFAULT_BUFFERED);
-  const loggerRef = useRef(createBufferedLogger(bufferOptions));
+  const loggerRef = useRef(createLogger(bufferOptions));
 
   useEffect(() => {
     loggerRef.current.start?.();
@@ -59,7 +56,7 @@ export const LoggerControlProvider = ({
       await loggerRef.current.flush?.();
     } catch {}
     await loggerRef.current.stop?.();
-    const newLogger = createBufferedLogger(next);
+    const newLogger = createLogger(next);
     newLogger.start?.();
     loggerRef.current = newLogger;
     setBufferOptionsState(next);
@@ -70,7 +67,7 @@ export const LoggerControlProvider = ({
 
   const value = useMemo(
     () => ({ logger: loggerRef.current, bufferOptions, setBufferOptions }),
-    [bufferOptions]
+    [bufferOptions],
   );
   return (
     <LoggerControlContext.Provider value={value}>

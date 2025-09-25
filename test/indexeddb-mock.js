@@ -10,12 +10,12 @@ class InMemoryIDBRequest {
     this.error = null;
   }
   triggerSuccess() {
-    if (typeof this.onsuccess === 'function') {
+    if (typeof this.onsuccess === "function") {
       this.onsuccess({ target: this });
     }
   }
   triggerError() {
-    if (typeof this.onerror === 'function') {
+    if (typeof this.onerror === "function") {
       this.onerror({ target: this });
     }
   }
@@ -33,7 +33,7 @@ class InMemoryObjectStore {
     return req;
   }
   put(value) {
-    if (!value.key && value.id === undefined) value.key = 'current';
+    if (!value.key && value.id === undefined) value.key = "current";
     this.store.set(value.key || value.id, { ...value });
     const req = new InMemoryIDBRequest(value.key || value.id);
     setTimeout(() => req.triggerSuccess(), 0);
@@ -64,7 +64,7 @@ class InMemoryTransaction {
     this.stores = stores;
   }
   objectStore(name) {
-    if (!this.stores[name]) throw new Error('ObjectStore not found: ' + name);
+    if (!this.stores[name]) throw new Error("ObjectStore not found: " + name);
     return new InMemoryObjectStore(this.stores[name]);
   }
 }
@@ -74,10 +74,10 @@ class InMemoryIDBDatabase {
     this.stores = stores;
   }
   transaction(storeNames, mode) {
-    if (typeof storeNames === 'string') storeNames = [storeNames];
+    if (typeof storeNames === "string") storeNames = [storeNames];
     const txStores = {};
     for (const name of storeNames) {
-      if (!this.stores[name]) throw new Error('ObjectStore not found: ' + name);
+      if (!this.stores[name]) throw new Error("ObjectStore not found: " + name);
       txStores[name] = this.stores[name];
     }
     return new InMemoryTransaction(txStores);
@@ -115,7 +115,7 @@ function indexedDB_deleteDatabase(name) {
 }
 
 // Attach to global for tests
-if (typeof global !== 'undefined') {
+if (typeof global !== "undefined") {
   global.indexedDB = {
     open: indexedDB_open,
     deleteDatabase: indexedDB_deleteDatabase,

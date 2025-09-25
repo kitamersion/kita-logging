@@ -1,6 +1,10 @@
-
-import { LogEntry, ConfigOptions } from './types';
-import { DEFAULT_RETENTION_DAYS, DB_NAME, STORE_NAME, STORE_CONFIG } from './defaults';
+import { LogEntry, ConfigOptions } from "./types";
+import {
+  DEFAULT_RETENTION_DAYS,
+  DB_NAME,
+  STORE_NAME,
+  STORE_CONFIG,
+} from "./defaults";
 
 let db: IDBDatabase | null = null;
 
@@ -13,12 +17,12 @@ const initDB = (): Promise<IDBDatabase> => {
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-  const logsStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-  // index on numeric timestamp for efficient ordering/queries
-  logsStore.createIndex('by_timestamp', 'timestamp');
+        const logsStore = db.createObjectStore(STORE_NAME, { keyPath: "id" });
+        // index on numeric timestamp for efficient ordering/queries
+        logsStore.createIndex("by_timestamp", "timestamp");
       }
       if (!db.objectStoreNames.contains(STORE_CONFIG)) {
-        db.createObjectStore(STORE_CONFIG, { keyPath: 'key' });
+        db.createObjectStore(STORE_CONFIG, { keyPath: "key" });
       }
     };
     request.onsuccess = (event) => {
@@ -37,15 +41,20 @@ const getDB = async (): Promise<IDBDatabase> => {
   return db;
 };
 
-export const saveLog = async (logEntry: Omit<LogEntry, 'id' | 'timestamp'>): Promise<void> => {
+export const saveLog = async (
+  logEntry: Omit<LogEntry, "id" | "timestamp">,
+): Promise<void> => {
   const db = await getDB();
-  const transaction = db.transaction([STORE_NAME], 'readwrite');
+  const transaction = db.transaction([STORE_NAME], "readwrite");
   const store = transaction.objectStore(STORE_NAME);
   const entry: LogEntry = {
     ...logEntry,
-    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-  timestamp: Date.now(),
-  timestampISO: new Date().toISOString(),
+    id:
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : String(Date.now()),
+    timestamp: Date.now(),
+    timestampISO: new Date().toISOString(),
   };
   const request = store.add(entry);
   return new Promise((resolve, reject) => {
@@ -54,9 +63,11 @@ export const saveLog = async (logEntry: Omit<LogEntry, 'id' | 'timestamp'>): Pro
   });
 };
 
-export const saveLogs = async (logEntries: Array<Omit<LogEntry, 'id' | 'timestamp'>>): Promise<void> => {
+export const saveLogs = async (
+  logEntries: Array<Omit<LogEntry, "id" | "timestamp">>,
+): Promise<void> => {
   const db = await getDB();
-  const transaction = db.transaction([STORE_NAME], 'readwrite');
+  const transaction = db.transaction([STORE_NAME], "readwrite");
   const store = transaction.objectStore(STORE_NAME);
 
   // Add each entry to the store within the same transaction.
@@ -64,10 +75,13 @@ export const saveLogs = async (logEntries: Array<Omit<LogEntry, 'id' | 'timestam
     const le = logEntries[i];
     const entry: LogEntry = {
       ...le,
-      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + String(i),
+      id:
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : String(Date.now()) + String(i),
       timestamp: Date.now(),
       timestampISO: new Date().toISOString(),
-  prefix: le.prefix ?? undefined,
+      prefix: le.prefix ?? undefined,
     };
     store.add(entry);
   }
@@ -81,15 +95,17 @@ export const saveLogs = async (logEntries: Array<Omit<LogEntry, 'id' | 'timestam
 
 export const getLogs = async (): Promise<LogEntry[]> => {
   const db = await getDB();
-  const transaction = db.transaction([STORE_NAME], 'readonly');
+  const transaction = db.transaction([STORE_NAME], "readonly");
   const store = transaction.objectStore(STORE_NAME);
   const request = store.getAll();
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
       try {
-  const result = request.result || [];
-  // Ensure newest logs first (timestamp stored as epoch ms)
-  result.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+        const result = request.result || [];
+        // Ensure newest logs first (timestamp stored as epoch ms)
+        result.sort(
+          (a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0),
+        );
         resolve(result);
       } catch (err) {
         reject(err);
@@ -99,15 +115,17 @@ export const getLogs = async (): Promise<LogEntry[]> => {
   });
 };
 
-export const deleteExpiredLogs = async (retentionDays = DEFAULT_RETENTION_DAYS): Promise<void> => {
+export const deleteExpiredLogs = async (
+  retentionDays = DEFAULT_RETENTION_DAYS,
+): Promise<void> => {
   const db = await getDB();
-  const transaction = db.transaction([STORE_NAME], 'readwrite');
+  const transaction = db.transaction([STORE_NAME], "readwrite");
   const store = transaction.objectStore(STORE_NAME);
   const cutoffDate = Date.now() - retentionDays * MS_PER_DAY;
   const logs = await getLogs();
-  const oldLogs = logs.filter(log => log.timestamp < cutoffDate);
-  
-  const deletePromises = oldLogs.map(log => {
+  const oldLogs = logs.filter((log) => log.timestamp < cutoffDate);
+
+  const deletePromises = oldLogs.map((log) => {
     const deleteRequest = store.delete(log.id);
     return new Promise<void>((resolve, reject) => {
       deleteRequest.onsuccess = () => resolve();
@@ -119,7 +137,7 @@ export const deleteExpiredLogs = async (retentionDays = DEFAULT_RETENTION_DAYS):
 
 export const deleteAllLogs = async (): Promise<void> => {
   const db = await getDB();
-  const transaction = db.transaction([STORE_NAME], 'readwrite');
+  const transaction = db.transaction([STORE_NAME], "readwrite");
   const store = transaction.objectStore(STORE_NAME);
   // Some IndexedDB polyfills or mocks may not implement `clear()`.
   // Fall back to reading all keys and deleting individually.
@@ -147,9 +165,9 @@ export const deleteAllLogs = async (): Promise<void> => {
 
 export const saveConfig = async (config: ConfigOptions): Promise<void> => {
   const db = await getDB();
-  const transaction = db.transaction([STORE_CONFIG], 'readwrite');
+  const transaction = db.transaction([STORE_CONFIG], "readwrite");
   const store = transaction.objectStore(STORE_CONFIG);
-  const request = store.put({ key: 'current', ...config });
+  const request = store.put({ key: "current", ...config });
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
@@ -158,9 +176,9 @@ export const saveConfig = async (config: ConfigOptions): Promise<void> => {
 
 export const getConfig = async (): Promise<ConfigOptions | null> => {
   const db = await getDB();
-  const transaction = db.transaction([STORE_CONFIG], 'readonly');
+  const transaction = db.transaction([STORE_CONFIG], "readonly");
   const store = transaction.objectStore(STORE_CONFIG);
-  const request = store.get('current');
+  const request = store.get("current");
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
       const result = request.result;
@@ -174,3 +192,4 @@ export const getConfig = async (): Promise<ConfigOptions | null> => {
     request.onerror = () => reject(request.error);
   });
 };
+

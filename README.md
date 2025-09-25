@@ -57,14 +57,14 @@ type SimpleLoggerConfig = {
 };
 
 const SimpleLoggerContext = createContext<SimpleLoggerConfig | undefined>(
-  undefined
+  undefined,
 );
 
 export const useSimpleLoggerConfig = () => {
   const ctx = useContext(SimpleLoggerContext);
   if (!ctx)
     throw new Error(
-      "useSimpleLoggerConfig must be used within LoggerProviderSimple"
+      "useSimpleLoggerConfig must be used within LoggerProviderSimple",
     );
   return ctx;
 };
@@ -160,7 +160,3 @@ npm run test
 - The logger is intentionally buffered. Call `logger.flush()` when you need to guarantee persistence (e.g., before a critical navigation or test assertion).
 - Log entries include both a numeric `timestamp` (ms since epoch) and `timestampISO` for UI display.
 - `history.getLogs()` returns newest-first by default. For very large datasets use cursor-based reads on the `by_timestamp` index for streaming/pagination.
-
-```
-
-```

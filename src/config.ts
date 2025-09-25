@@ -1,5 +1,5 @@
-import { saveConfig, getConfig } from './history';
-import { DEFAULT_LOG_PREFIX, DEFAULT_RETENTION_DAYS } from './defaults';
+import { saveConfig, getConfig } from "./history";
+import { DEFAULT_LOG_PREFIX, DEFAULT_RETENTION_DAYS } from "./defaults";
 
 let logPrefix = DEFAULT_LOG_PREFIX;
 let logRetentionDays = DEFAULT_RETENTION_DAYS;
@@ -44,3 +44,4 @@ export const viewCurrentConfigurations = async () => {
     logRetentionDays,
   };
 };
+

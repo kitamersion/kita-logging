@@ -1,5 +1,5 @@
-import { getLogPrefix } from './config';
-import { saveLogs } from './history';
+import { getLogPrefix } from "./config";
+import { saveLogs } from "./history";
 
 // Buffered, fire-and-forget logger implementation.
 export type BufferedOptions = {
@@ -16,7 +16,7 @@ const DEFAULT_BUFFERED: Required<BufferedOptions> = {
   persistToLocalStorage: true,
 };
 
-const LS_KEY = 'kita_logging_buffer_snapshot_v1';
+const LS_KEY = "kita_logging_buffer_snapshot_v1";
 
 let _cachedPrefix: string | null = null;
 // initialize prefix in background
@@ -28,9 +28,9 @@ let _cachedPrefix: string | null = null;
   }
 })();
 
-export const createBufferedLogger = (opts?: BufferedOptions) => {
+export const createLogger = (opts?: BufferedOptions) => {
   const cfg = { ...DEFAULT_BUFFERED, ...(opts || {}) };
-  let buffer: Array<Omit<any, 'id' | 'timestamp'>> = [];
+  let buffer: Array<Omit<any, "id" | "timestamp">> = [];
   let timer: any = null;
   let stopped = false;
 
@@ -54,7 +54,11 @@ export const createBufferedLogger = (opts?: BufferedOptions) => {
     if (!cfg.persistToLocalStorage) return;
     try {
       // only persist serializable fields (avoid functions/promises)
-      const serializable = buffer.map((it: any) => ({ message: it.message, level: it.level, prefix: it.prefix }));
+      const serializable = buffer.map((it: any) => ({
+        message: it.message,
+        level: it.level,
+        prefix: it.prefix,
+      }));
       localStorage.setItem(LS_KEY, JSON.stringify(serializable));
     } catch (e) {
       // ignore
@@ -84,13 +88,18 @@ export const createBufferedLogger = (opts?: BufferedOptions) => {
     if (buffer.length === 0) return;
     const toSend = buffer.splice(0, cfg.batchSize);
     // strip out internal deferreds for persistence
-    const serializable = toSend.map((it: any) => ({ message: it.message, level: it.level, prefix: it.prefix }));
+    const serializable = toSend.map((it: any) => ({
+      message: it.message,
+      level: it.level,
+      prefix: it.prefix,
+    }));
     try {
       await saveLogs(serializable as any);
       // resolve deferred promises for each item
       toSend.forEach((it: any) => {
         try {
-          if (it.__deferred && typeof it.__deferred.res === 'function') it.__deferred.res();
+          if (it.__deferred && typeof it.__deferred.res === "function")
+            it.__deferred.res();
         } catch (e) {
           // ignore individual resolution errors
         }
@@ -102,7 +111,8 @@ export const createBufferedLogger = (opts?: BufferedOptions) => {
       // reject deferred promises
       toSend.forEach((it: any) => {
         try {
-          if (it.__deferred && typeof it.__deferred.rej === 'function') it.__deferred.rej(e);
+          if (it.__deferred && typeof it.__deferred.rej === "function")
+            it.__deferred.rej(e);
         } catch (er) {
           // ignore
         }
@@ -116,7 +126,7 @@ export const createBufferedLogger = (opts?: BufferedOptions) => {
   schedule();
 
   // push returns a promise that resolves when the entry has been persisted
-  const push = (entry: Omit<any, 'id' | 'timestamp'>): Promise<void> => {
+  const push = (entry: Omit<any, "id" | "timestamp">): Promise<void> => {
     if (buffer.length >= cfg.maxBufferSize) {
       // drop oldest to make room
       buffer.shift();
@@ -135,21 +145,22 @@ export const createBufferedLogger = (opts?: BufferedOptions) => {
     return p;
   };
 
-  const makeLogger = (level: 'info' | 'debug' | 'warn' | 'error') => (message: string) => {
-    const prefix = _cachedPrefix ?? '[KITA_LOGGING]';
-    // console output immediately
-    if (level === 'info') console.log(`${prefix} ${message}`);
-    if (level === 'debug') console.info(`${prefix} ${message}`);
-    if (level === 'warn') console.warn(`${prefix} ${message}`);
-    if (level === 'error') console.error(`${prefix} ${message}`);
-  return push({ message, level, prefix });
-  };
+  const makeLogger =
+    (level: "info" | "debug" | "warn" | "error") => (message: string) => {
+      const prefix = _cachedPrefix ?? "[KITA_LOGGING]";
+      // console output immediately
+      if (level === "info") console.log(`${prefix} ${message}`);
+      if (level === "debug") console.info(`${prefix} ${message}`);
+      if (level === "warn") console.warn(`${prefix} ${message}`);
+      if (level === "error") console.error(`${prefix} ${message}`);
+      return push({ message, level, prefix });
+    };
 
   return {
-    info: makeLogger('info'),
-    debug: makeLogger('debug'),
-    warn: makeLogger('warn'),
-    error: makeLogger('error'),
+    info: makeLogger("info"),
+    debug: makeLogger("debug"),
+    warn: makeLogger("warn"),
+    error: makeLogger("error"),
     flush,
     stop,
     start,
@@ -162,7 +173,8 @@ export const createBufferedLogger = (opts?: BufferedOptions) => {
 };
 
 // default instance with defaults
-export const bufferedLogger = createBufferedLogger();
+export const logger = createLogger();
 
 // Common default export used by tests and consumers importing the module directly
-export default bufferedLogger;
+export default logger;
+
