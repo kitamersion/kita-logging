@@ -7,8 +7,16 @@ export interface LogEntry {
   prefix?: string;
 }
 
+export type BufferedOptions = {
+  flushIntervalMs?: number;
+  batchSize?: number;
+  maxBufferSize?: number;
+  persistToLocalStorage?: boolean;
+};
+
 export interface ConfigOptions {
   logPrefix: string;
   logRetentionDays: number;
+  bufferedOptions?: BufferedOptions;
 }
 

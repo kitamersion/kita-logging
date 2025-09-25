@@ -37,6 +37,10 @@ console.log(logs[0].timestampISO, logs[0].message, logs[0].prefix);
 // configure
 await config.setLogPrefix("[MY_APP]");
 await config.setLogRetentionDays(14);
+// configure buffered logger options (persisted)
+await config.setBufferedOptions({ flushIntervalMs: 1000, batchSize: 25 });
+const current = await config.getBufferedOptions();
+console.log(current);
 ```
 
 ## React: Provider + hook example
@@ -57,14 +61,14 @@ type SimpleLoggerConfig = {
 };
 
 const SimpleLoggerContext = createContext<SimpleLoggerConfig | undefined>(
-  undefined,
+  undefined
 );
 
 export const useSimpleLoggerConfig = () => {
   const ctx = useContext(SimpleLoggerContext);
   if (!ctx)
     throw new Error(
-      "useSimpleLoggerConfig must be used within LoggerProviderSimple",
+      "useSimpleLoggerConfig must be used within LoggerProviderSimple"
     );
   return ctx;
 };
@@ -130,6 +134,9 @@ config (named export)
 - `config.setLogRetentionDays(days: number): Promise<void>`
 - `config.getLogRetentionDays(): Promise<number>`
 - `config.viewCurrentConfigurations(): Promise<{ logPrefix: string, logRetentionDays: number }>`
+- `config.setBufferedOptions(opts: BufferedOptions): Promise<void>` — persist buffered logger options (flushIntervalMs, batchSize, maxBufferSize, persistToLocalStorage)
+- `config.getBufferedOptions(): Promise<BufferedOptions>` — read persisted buffered options (or defaults)
+- `config.onBufferedOptionsChange(fn: (opts: BufferedOptions) => void): () => void` — subscribe to changes to buffered options; returns an unsubscribe function
 
 history (named export)
 
@@ -137,9 +144,14 @@ history (named export)
 - `history.deleteExpiredLogs(retentionDays?: number): Promise<void>`
 - `history.deleteAllLogs(): Promise<void>`
 
+logger helpers
+
+- `createLogger(opts?: BufferedOptions)` — create a custom buffered logger instance with the same API as the default `logger` (useful for per-module or per-environment customization). The `BufferedOptions` shape is the same as described in "Configuration options (buffered logger)" below.
+- The default exported `logger` instance will attempt to read persisted buffered options from `config` on startup and will reconfigure itself if `config.setBufferedOptions` is called at runtime. Existing references to the exported `logger` remain valid when the implementation is swapped.
+
 ## Configuration options (buffered logger)
 
-When creating a custom buffered logger via `createBufferedLogger(opts)`, available options:
+When creating a custom buffered logger via `createLogger(opts)` or when persisting options via `config.setBufferedOptions`, available options:
 
 - `flushIntervalMs` (number) — automatic flush interval in ms (default: `2000`)
 - `batchSize` (number) — entries per flush (default: `50`)

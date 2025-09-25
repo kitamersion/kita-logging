@@ -1,13 +1,8 @@
-import { getLogPrefix } from "./config";
+import { getLogPrefix, getBufferedOptions, onBufferedOptionsChange } from "./config";
 import { saveLogs } from "./history";
+import type { BufferedOptions } from "./types";
 
 // Buffered, fire-and-forget logger implementation.
-export type BufferedOptions = {
-  flushIntervalMs?: number;
-  batchSize?: number;
-  maxBufferSize?: number;
-  persistToLocalStorage?: boolean;
-};
 
 const DEFAULT_BUFFERED: Required<BufferedOptions> = {
   flushIntervalMs: 2000,
@@ -172,9 +167,48 @@ export const createLogger = (opts?: BufferedOptions) => {
   };
 };
 
-// default instance with defaults
-export const logger = createLogger();
+// create a synchronous default instance immediately
+let _defaultLogger: any = createLogger();
 
-// Common default export used by tests and consumers importing the module directly
+// attempt to reconfigure with persisted options when available
+const createDefault = async () => {
+  try {
+    const opts = await getBufferedOptions();
+    // stop current logger before replacing behavior
+    try {
+      if (_defaultLogger && typeof _defaultLogger.stop === "function")
+        await _defaultLogger.stop();
+    } catch (e) {
+      // ignore stop errors
+    }
+    const newLogger = createLogger(opts as BufferedOptions);
+    // copy methods/properties onto the existing exported object so references stay valid
+    Object.keys(newLogger).forEach((k) => {
+      (_defaultLogger as any)[k] = (newLogger as any)[k];
+    });
+  } catch (e) {
+    // ignore
+  }
+};
+
+createDefault();
+
+// update behavior when buffered options change at runtime
+onBufferedOptionsChange((opts) => {
+  (async () => {
+    try {
+      if (_defaultLogger && typeof _defaultLogger.stop === "function")
+        await _defaultLogger.stop();
+    } catch (e) {
+      // ignore
+    }
+    const newLogger = createLogger(opts as BufferedOptions);
+    Object.keys(newLogger).forEach((k) => {
+      (_defaultLogger as any)[k] = (newLogger as any)[k];
+    });
+  })();
+});
+
+export const logger = _defaultLogger;
 export default logger;
 
